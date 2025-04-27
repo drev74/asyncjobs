@@ -9,9 +9,14 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("Router", func() {
+
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
 	Describe("ExternalProcess", func() {
 		var (
 			task   *Task
@@ -27,21 +32,21 @@ var _ = Describe("Router", func() {
 		It("Should handle missing commands", func() {
 			Expect(router.ExternalProcess("email:new", "testdata/missing.sh")).ToNot(HaveOccurred())
 			handler := router.Handler(task)
-			_, err = handler(context.Background(), &defaultLogger{}, task)
+			_, err = handler(context.Background(), zl, task)
 			Expect(err).To(MatchError(ErrExternalCommandNotFound))
 		})
 
 		It("Should handle command failures", func() {
 			Expect(router.ExternalProcess("email:new", "testdata/failing-handler.sh")).ToNot(HaveOccurred())
 			handler := router.Handler(task)
-			_, err = handler(context.Background(), &defaultLogger{}, task)
+			_, err = handler(context.Background(), zl, task)
 			Expect(err).To(MatchError(ErrExternalCommandFailed))
 		})
 
 		It("Should handle success", func() {
 			Expect(router.ExternalProcess("email:new", "testdata/passing-handler.sh")).ToNot(HaveOccurred())
 			handler := router.Handler(task)
-			payload, err := handler(context.Background(), &defaultLogger{}, task)
+			payload, err := handler(context.Background(), zl, task)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(payload).To(Equal("success\n"))
 		})
@@ -50,7 +55,7 @@ var _ = Describe("Router", func() {
 	Describe("Handler", func() {
 		It("Should support default handler", func() {
 			router := NewTaskRouter()
-			router.HandleFunc("x", func(_ context.Context, _ Logger, _ *Task) (any, error) {
+			router.HandleFunc("x", func(_ context.Context, _ *zap.SugaredLogger, _ *Task) (any, error) {
 				return "x", nil
 			})
 
@@ -58,28 +63,28 @@ var _ = Describe("Router", func() {
 			Expect(err).ToNot(HaveOccurred())
 
 			handler := router.Handler(task)
-			_, err = handler(nil, &defaultLogger{}, task)
+			_, err = handler(nil, zl, task)
 			Expect(err).To(MatchError(ErrNoHandlerForTaskType))
 		})
 
 		It("Should find the correct handler", func() {
 			router := NewTaskRouter()
-			router.HandleFunc("", func(_ context.Context, _ Logger, _ *Task) (any, error) {
+			router.HandleFunc("", func(_ context.Context, _ *zap.SugaredLogger, _ *Task) (any, error) {
 				return "custom default", nil
 			})
-			router.HandleFunc("things:", func(_ context.Context, _ Logger, _ *Task) (any, error) {
+			router.HandleFunc("things:", func(_ context.Context, _ *zap.SugaredLogger, _ *Task) (any, error) {
 				return "things:", nil
 			})
-			router.HandleFunc("things:very:specific", func(_ context.Context, _ Logger, _ *Task) (any, error) {
+			router.HandleFunc("things:very:specific", func(_ context.Context, _ *zap.SugaredLogger, _ *Task) (any, error) {
 				return "things:very:specific", nil
 			})
-			router.HandleFunc("things:specific", func(_ context.Context, _ Logger, _ *Task) (any, error) {
+			router.HandleFunc("things:specific", func(_ context.Context, _ *zap.SugaredLogger, _ *Task) (any, error) {
 				return "things:specific", nil
 			})
 
 			check := func(ttype string, expected string) {
 				task := &Task{Type: ttype}
-				res, err := router.Handler(task)(context.Background(), &defaultLogger{}, task)
+				res, err := router.Handler(task)(context.Background(), zl, task)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(res).To(Equal(expected))
 			}

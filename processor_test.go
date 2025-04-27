@@ -11,6 +11,7 @@ import (
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("Processor", func() {
@@ -18,6 +19,9 @@ var _ = Describe("Processor", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 	)
+
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithCancel(context.Background())
@@ -29,7 +33,7 @@ var _ = Describe("Processor", func() {
 	Describe("handler", func() {
 		It("Should handler termination errors and terminate the item", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -43,7 +47,7 @@ var _ = Describe("Processor", func() {
 				wg.Add(1)
 
 				router := NewTaskRouter()
-				router.HandleFunc("ginkgo", func(_ context.Context, _ Logger, t *Task) (any, error) {
+				router.HandleFunc("ginkgo", func(_ context.Context, _ *zap.SugaredLogger, t *Task) (any, error) {
 					wg.Done()
 					return nil, fmt.Errorf("simulated failure: %w", ErrTerminateTask)
 				})
@@ -74,7 +78,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should handle handler errors and update the task and NaK the item", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -88,7 +92,7 @@ var _ = Describe("Processor", func() {
 				wg.Add(1)
 
 				router := NewTaskRouter()
-				router.HandleFunc("ginkgo", func(_ context.Context, _ Logger, t *Task) (any, error) {
+				router.HandleFunc("ginkgo", func(_ context.Context, _ *zap.SugaredLogger, t *Task) (any, error) {
 					wg.Done()
 					return nil, fmt.Errorf("simulated failure")
 				})
@@ -115,7 +119,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should set task success and Ack the item", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -129,7 +133,7 @@ var _ = Describe("Processor", func() {
 				wg.Add(1)
 
 				router := NewTaskRouter()
-				router.HandleFunc("ginkgo", func(_ context.Context, _ Logger, t *Task) (any, error) {
+				router.HandleFunc("ginkgo", func(_ context.Context, _ *zap.SugaredLogger, t *Task) (any, error) {
 					wg.Done()
 					return "done", nil
 				})
@@ -158,7 +162,7 @@ var _ = Describe("Processor", func() {
 	Describe("processMessage", func() {
 		It("Should handle tasks that do not exist by terminating the item", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -180,7 +184,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should not process active tasks", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -206,7 +210,7 @@ var _ = Describe("Processor", func() {
 				q := newDefaultQueue()
 				q.MaxRunTime = 100 * time.Millisecond
 
-				client, err := NewClient(NatsConn(nc), WorkQueue(q))
+				client, err := NewClient(zl, NatsConn(nc), WorkQueue(q))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -231,7 +235,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should not process completed or expired tasks", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -261,7 +265,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should not process past max tries tasks, and it should set them to expired", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -287,7 +291,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should not process past deadline tasks, and it should set them to expired", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -312,7 +316,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should support executing messages with deadlines in the future", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -332,7 +336,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should set tasks as active and process them using the handler", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -346,7 +350,7 @@ var _ = Describe("Processor", func() {
 				wg.Add(1)
 
 				router := NewTaskRouter()
-				router.HandleFunc("ginkgo", func(ctx context.Context, log Logger, task *Task) (any, error) {
+				router.HandleFunc("ginkgo", func(ctx context.Context, log *zap.SugaredLogger, task *Task) (any, error) {
 					// these will panic as its in a different routine, but they are supposed to pass so thats fine
 					t, err := client.LoadTaskByID(task.ID)
 					Expect(err).ToNot(HaveOccurred())
@@ -384,7 +388,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should fail for unresolvable dependencies", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -411,7 +415,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should fail for failed dependencies", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -444,7 +448,7 @@ var _ = Describe("Processor", func() {
 
 		It("Should run tasks in order", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.setupStreams()).ToNot(HaveOccurred())
@@ -468,7 +472,7 @@ var _ = Describe("Processor", func() {
 				var runs []string
 
 				router := NewTaskRouter()
-				router.HandleFunc("ginkgo", func(ctx context.Context, log Logger, task *Task) (any, error) {
+				router.HandleFunc("ginkgo", func(ctx context.Context, log *zap.SugaredLogger, task *Task) (any, error) {
 					mu.Lock()
 					defer mu.Unlock()
 					defer wg.Done()
@@ -501,7 +505,7 @@ var _ = Describe("Processor", func() {
 	Describe("newProcessor", func() {
 		It("Should et up a limiter", func() {
 			withJetStream(func(nc *nats.Conn, _ *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc), ClientConcurrency(5))
+				client, err := NewClient(zl, NatsConn(nc), ClientConcurrency(5))
 				Expect(err).ToNot(HaveOccurred())
 
 				proc, err := newProcessor(client)

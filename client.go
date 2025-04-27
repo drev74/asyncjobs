@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.uber.org/zap"
 )
 
 // Client connects Task producers and Task handlers to the backend
@@ -24,18 +25,18 @@ type Client struct {
 	opts    *ClientOpts
 	storage Storage
 
-	log Logger
+	log *zap.SugaredLogger
 }
 
 // NewClient creates a new client, one of NatsConn() or NatsContext() must be passed, other options are optional.
 //
 // When no Queue() is supplied a default queue called DEFAULT will be used
-func NewClient(opts ...ClientOpt) (*Client, error) {
+func NewClient(logger *zap.SugaredLogger, opts ...ClientOpt) (*Client, error) {
 	copts := &ClientOpts{
 		replicas:    1,
 		concurrency: 10,
 		retryPolicy: RetryDefault,
-		logger:      &noopLogger{},
+		logger:      logger,
 	}
 
 	var err error

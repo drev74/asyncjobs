@@ -12,11 +12,12 @@ import (
 	"github.com/choria-io/asyncjobs/election"
 	"github.com/dustin/go-humanize"
 	"github.com/robfig/cron/v3"
+	"go.uber.org/zap"
 )
 
 type TaskScheduler struct {
 	s                  ScheduledTaskStorage
-	log                Logger
+	log                *zap.SugaredLogger
 	tasks              map[string]*scheduledTask
 	mu                 sync.Mutex
 	cron               *cron.Cron

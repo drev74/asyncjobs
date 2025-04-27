@@ -17,6 +17,7 @@ import (
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("Storage", func() {
@@ -24,6 +25,9 @@ var _ = Describe("Storage", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 	)
+
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), time.Minute)
@@ -39,7 +43,7 @@ var _ = Describe("Storage", func() {
 	Describe("ScheduledTasksWatch", func() {
 		It("Should handle no tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -58,7 +62,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should handle some tasks and nil at the end and then send updates", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -111,7 +115,7 @@ var _ = Describe("Storage", func() {
 	Describe("ScheduledTasks", func() {
 		It("Should handle no tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -125,7 +129,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should return found tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -151,7 +155,7 @@ var _ = Describe("Storage", func() {
 	Describe("LoadScheduledTaskByName", func() {
 		It("Should handle corrupt tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -167,7 +171,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should handle missing tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -180,7 +184,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should load the task", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -203,7 +207,7 @@ var _ = Describe("Storage", func() {
 	Describe("SaveScheduledTask", func() {
 		It("Should support updating a task", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -226,7 +230,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should support creating the task", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -247,7 +251,7 @@ var _ = Describe("Storage", func() {
 	Describe("PrepareConfigurationStore", func() {
 		It("Should support memory", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(true, 1)
@@ -262,7 +266,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should create the scheduled task store correctly", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareConfigurationStore(false, 1)
@@ -280,7 +284,7 @@ var _ = Describe("Storage", func() {
 	Describe("PrepareTasks", func() {
 		It("Should support memory", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -292,7 +296,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should support retention", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -304,7 +308,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should create the task store correctly", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(false, 1, 0)
@@ -323,7 +327,7 @@ var _ = Describe("Storage", func() {
 	Describe("LoadTaskByID", func() {
 		It("Should read the correct task", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -358,7 +362,7 @@ var _ = Describe("Storage", func() {
 	Describe("PrepareQueue", func() {
 		prepare := func(cb func(storage *jetStreamStorage, q *Queue)) {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				cb(storage, testQueue())
@@ -501,7 +505,7 @@ var _ = Describe("Storage", func() {
 	Describe("PollQueue", func() {
 		It("Should fail for unknown queues", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				item, err := storage.PollQueue(ctx, newDefaultQueue())
@@ -512,7 +516,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should handle empty queues", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -532,7 +536,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should handle invalid items", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -571,7 +575,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should poll correctly", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -599,7 +603,7 @@ var _ = Describe("Storage", func() {
 	Describe("NaKItem", func() {
 		It("Should fail for invalid items", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				item := &ProcessItem{Kind: TaskItem, JobID: "123"}
@@ -610,7 +614,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should NaK with delay", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -645,7 +649,7 @@ var _ = Describe("Storage", func() {
 	Describe("TasksInfo", func() {
 		It("Should return the correct info", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(storage.PrepareTasks(true, 1, time.Hour)).ToNot(HaveOccurred())
 
@@ -661,7 +665,7 @@ var _ = Describe("Storage", func() {
 	Describe("DeleteTaskByID", func() {
 		It("Should delete the task", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q1 := &Queue{Name: "Q1"}
@@ -688,7 +692,7 @@ var _ = Describe("Storage", func() {
 	Describe("PurgeQueue", func() {
 		It("Should purge all the messages", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q1 := &Queue{Name: "Q1"}
@@ -716,7 +720,7 @@ var _ = Describe("Storage", func() {
 	Describe("Queues", func() {
 		It("Should find all the queues", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q1 := &Queue{Name: "Q1"}
@@ -744,7 +748,7 @@ var _ = Describe("Storage", func() {
 	Describe("AckItem", func() {
 		It("Should fail when the item has no storage metadata", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				item := &ProcessItem{Kind: TaskItem, JobID: "123"}
@@ -755,7 +759,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should ack the item", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -790,7 +794,7 @@ var _ = Describe("Storage", func() {
 	Describe("RetryTaskByID", func() {
 		It("Should handle missing tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -802,7 +806,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should remove the task from the queue and enqueue with retry state", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -836,7 +840,7 @@ var _ = Describe("Storage", func() {
 	Describe("EnqueueTask", func() {
 		It("Save the task and handle save errors", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				q := testQueue()
@@ -853,7 +857,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should create the WQ entry with dedupe headers", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -879,7 +883,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should not set dupe headers for retries", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -904,7 +908,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should enqueue task and job correctly", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -939,7 +943,7 @@ var _ = Describe("Storage", func() {
 	Describe("SaveTaskState", func() {
 		It("Should handle missing streams", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				task, err := NewTask("ginkgo", nil)
@@ -954,7 +958,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should use the correct last subject sequence for new saves", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -979,7 +983,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should use the correct last subject sequence for updates", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -1020,7 +1024,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should handle publish failures based on the last subject sequence", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)
@@ -1044,7 +1048,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should publish events", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 				Expect(storage.PrepareTasks(true, 1, time.Hour)).ToNot(HaveOccurred())
 
@@ -1068,7 +1072,7 @@ var _ = Describe("Storage", func() {
 
 		It("Should save the task correctly", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				storage, err := newJetStreamStorage(nc, retryForTesting, &defaultLogger{})
+				storage, err := newJetStreamStorage(nc, retryForTesting, zl)
 				Expect(err).ToNot(HaveOccurred())
 
 				err = storage.PrepareTasks(true, 1, time.Hour)

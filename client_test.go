@@ -21,6 +21,7 @@ import (
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 func TestAsyncJobs(t *testing.T) {
@@ -71,6 +72,9 @@ var _ = Describe("Client", func() {
 		log.SetOutput(GinkgoWriter)
 	})
 
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
 	Describe("SignedTasks", func() {
 		var pubk ed25519.PublicKey
 		var prik ed25519.PrivateKey
@@ -83,7 +87,7 @@ var _ = Describe("Client", func() {
 
 		It("Should sign messages", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc), TaskSigningKey(prik), TaskVerificationKey(pubk))
+				client, err := NewClient(zl, NatsConn(nc), TaskSigningKey(prik), TaskVerificationKey(pubk))
 				Expect(err).ToNot(HaveOccurred())
 
 				task, err := NewTask("x", nil)
@@ -100,7 +104,7 @@ var _ = Describe("Client", func() {
 
 		It("Should verify loaded tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc), TaskSigningKey(prik), TaskVerificationKey(pubk))
+				client, err := NewClient(zl, NatsConn(nc), TaskSigningKey(prik), TaskVerificationKey(pubk))
 				Expect(err).ToNot(HaveOccurred())
 
 				task, err := NewTask("x", nil)
@@ -118,7 +122,7 @@ var _ = Describe("Client", func() {
 
 		It("Should support loading signed and unsigned messages", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc), TaskVerificationKey(pubk))
+				client, err := NewClient(zl, NatsConn(nc), TaskVerificationKey(pubk))
 				Expect(err).ToNot(HaveOccurred())
 
 				task, err := NewTask("x", nil)
@@ -158,10 +162,10 @@ var _ = Describe("Client", func() {
 	Describe("shouldDiscardTask", func() {
 		It("Should correctly detect task states", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				_, err := NewClient(NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateActive))
+				_, err := NewClient(zl, NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateActive))
 				Expect(err).To(MatchError("only states completed, expired or terminated can be discarded"))
 
-				client, err := NewClient(NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateCompleted))
+				client, err := NewClient(zl, NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateCompleted))
 				Expect(err).ToNot(HaveOccurred())
 
 				Expect(client.shouldDiscardTask(&Task{State: TaskStateActive})).To(BeFalse())
@@ -174,7 +178,7 @@ var _ = Describe("Client", func() {
 	Describe("saveOrDiscardTaskIfDesired", func() {
 		It("Should delete the correct tasks", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateCompleted))
+				client, err := NewClient(zl, NatsConn(nc), DiscardTaskStates(TaskStateExpired, TaskStateCompleted))
 				Expect(err).ToNot(HaveOccurred())
 
 				task, err := NewTask("x", nil)
@@ -196,7 +200,7 @@ var _ = Describe("Client", func() {
 	It("Should function", func() {
 		Skip("For interactive testing and debugging")
 		withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-			client, err := NewClient(NatsConn(nc), RetryBackoffPolicy(RetryLinearOneMinute))
+			client, err := NewClient(zl, NatsConn(nc), RetryBackoffPolicy(RetryLinearOneMinute))
 			Expect(err).ToNot(HaveOccurred())
 
 			testCount := 1000
@@ -222,7 +226,7 @@ var _ = Describe("Client", func() {
 			handled := int32(0)
 
 			router := NewTaskRouter()
-			router.HandleFunc("test", func(ctx context.Context, log Logger, t *Task) (any, error) {
+			router.HandleFunc("test", func(ctx context.Context, log *zap.SugaredLogger, t *Task) (any, error) {
 				if t.Tries > 1 {
 					log.Infof("Try %d for task %s", t.Tries, t.ID)
 				}
@@ -264,7 +268,7 @@ var _ = Describe("Client", func() {
 			ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 			defer cancel()
 
-			client, err := NewClient(NatsConn(nc), RetryBackoffPolicy(retryForTesting))
+			client, err := NewClient(zl, NatsConn(nc), RetryBackoffPolicy(retryForTesting))
 			Expect(err).ToNot(HaveOccurred())
 
 			task, err := NewTask("ginkgo", "test")
@@ -282,7 +286,7 @@ var _ = Describe("Client", func() {
 			var tries []time.Time
 
 			router := NewTaskRouter()
-			err = router.HandleFunc("ginkgo", func(ctx context.Context, log Logger, t *Task) (any, error) {
+			err = router.HandleFunc("ginkgo", func(ctx context.Context, log *zap.SugaredLogger, t *Task) (any, error) {
 				tries = append(tries, time.Now())
 
 				log.Errorf("Trying task %s on try %d\n", t.ID, t.Tries)

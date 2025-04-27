@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func newEmail(to, subject, body string) map[string]any {
@@ -29,6 +31,9 @@ func ExampleClient_producer() {
 		MaxTries:      100,
 	}
 
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
 	email := newEmail("user@example.net", "Test Subject", "Test Body")
 
 	// Creates a new task that has a deadline for processing 1 hour from now
@@ -37,7 +42,7 @@ func ExampleClient_producer() {
 
 	// Uses the NATS CLI context WQ for connection details, will create the queue if
 	// it does not already exist
-	client, err := NewClient(NatsContext("WQ"), WorkQueue(queue))
+	client, err := NewClient(zl, NatsContext("WQ"), WorkQueue(queue))
 	panicIfErr(err)
 
 	// Adds the task to the queue called P100
@@ -65,13 +70,16 @@ func ExampleClient_consumer() {
 		MaxTries:      100,
 	}
 
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
 	// Uses the NATS CLI context WQ for connection details, will create the queue if
 	// it does not already exist
-	client, err := NewClient(NatsContext("WQ"), WorkQueue(queue), RetryBackoffPolicy(RetryLinearOneHour))
+	client, err := NewClient(zl, NatsContext("WQ"), WorkQueue(queue), RetryBackoffPolicy(RetryLinearOneHour))
 	panicIfErr(err)
 
 	router := NewTaskRouter()
-	err = router.HandleFunc("email:send", func(_ context.Context, _ Logger, t *Task) (any, error) {
+	err = router.HandleFunc("email:send", func(_ context.Context, _ *zap.SugaredLogger, t *Task) (any, error) {
 		log.Printf("Processing task: %s", t.ID)
 
 		// handle task.Payload which is a JSON encoded email
@@ -87,7 +95,10 @@ func ExampleClient_consumer() {
 }
 
 func ExampleClient_LoadTaskByID() {
-	client, err := NewClient(NatsContext("WQ"))
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
+	client, err := NewClient(zl, NatsContext("WQ"))
 	panicIfErr(err)
 
 	task, err := client.LoadTaskByID("24ErgVol4ZjpoQ8FAima9R2jEHB")

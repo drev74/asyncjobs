@@ -12,6 +12,7 @@ import (
 
 	"github.com/nats-io/jsm.go/natscontext"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 // ClientOpts configures the client
@@ -23,7 +24,7 @@ type ClientOpts struct {
 	retryPolicy            RetryPolicyProvider
 	memoryStore            bool
 	statsPort              int
-	logger                 Logger
+	logger                 *zap.SugaredLogger
 	skipPrepare            bool
 	discard                []TaskState
 	privateKey             ed25519.PrivateKey
@@ -95,7 +96,7 @@ func NoStorageInit() ClientOpt {
 }
 
 // CustomLogger sets a custom logger to use for all logging
-func CustomLogger(log Logger) ClientOpt {
+func CustomLogger(log *zap.SugaredLogger) ClientOpt {
 	return func(opts *ClientOpts) error {
 		opts.logger = log
 		return nil

@@ -14,6 +14,7 @@ import (
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("TaskScheduler", func() {
@@ -22,6 +23,9 @@ var _ = Describe("TaskScheduler", func() {
 		cancel context.CancelFunc
 		wg     sync.WaitGroup
 	)
+
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
@@ -32,7 +36,7 @@ var _ = Describe("TaskScheduler", func() {
 	Describe("Run", func() {
 		It("Should function", func() {
 			withJetStream(func(nc *nats.Conn, mgr *jsm.Manager) {
-				client, err := NewClient(NatsConn(nc))
+				client, err := NewClient(zl, NatsConn(nc))
 				Expect(err).ToNot(HaveOccurred())
 
 				task, _ := NewTask("ginko:test", nil)

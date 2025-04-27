@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"go.uber.org/zap"
 )
 
 type processor struct {
@@ -22,7 +23,7 @@ type processor struct {
 	concurrency int
 	limiter     chan struct{}
 	retryPolicy RetryPolicyProvider
-	log         Logger
+	log         *zap.SugaredLogger
 
 	mu *sync.Mutex
 }

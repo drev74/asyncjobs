@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
+	"go.uber.org/zap"
 )
 
 type entryHandler struct {
@@ -24,7 +25,7 @@ type entryHandler struct {
 }
 
 // HandlerFunc handles a single task, the response bytes will be stored in the original task
-type HandlerFunc func(ctx context.Context, log Logger, t *Task) (any, error)
+type HandlerFunc func(ctx context.Context, log *zap.SugaredLogger, t *Task) (any, error)
 
 // Mux routes messages
 //
@@ -44,7 +45,7 @@ func NewTaskRouter() *Mux {
 	}
 }
 
-func notFoundHandler(_ context.Context, _ Logger, t *Task) (any, error) {
+func notFoundHandler(_ context.Context, _ *zap.SugaredLogger, t *Task) (any, error) {
 	return nil, fmt.Errorf("%w %q", ErrNoHandlerForTaskType, t.Type)
 }
 
@@ -98,7 +99,7 @@ func (m *Mux) RequestReply(taskType string, client *Client) error {
 // The task will be passed in JSON format on STDIN, any STDOUT/STDERR output will become the task
 // result. Any non 0 exit code will be treated as a task failure.
 func (m *Mux) ExternalProcess(taskType string, command string) error {
-	return m.HandleFunc(taskType, func(ctx context.Context, log Logger, task *Task) (any, error) {
+	return m.HandleFunc(taskType, func(ctx context.Context, log *zap.SugaredLogger, task *Task) (any, error) {
 		stat, err := os.Stat(command)
 		if err != nil || stat.IsDir() {
 			return nil, ErrExternalCommandNotFound

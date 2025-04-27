@@ -20,6 +20,7 @@ import (
 	"github.com/nats-io/jsm.go"
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -75,7 +76,7 @@ type jetStreamStorage struct {
 	qStreams   map[string]*jsm.Stream
 	qConsumers map[string]*jsm.Consumer
 
-	log Logger
+	log *zap.SugaredLogger
 
 	mu sync.Mutex
 }
@@ -89,7 +90,7 @@ type taskMeta struct {
 	seq uint64
 }
 
-func newJetStreamStorage(nc *nats.Conn, rp RetryPolicyProvider, log Logger) (*jetStreamStorage, error) {
+func newJetStreamStorage(nc *nats.Conn, rp RetryPolicyProvider, log *zap.SugaredLogger) (*jetStreamStorage, error) {
 	if nc == nil {
 		return nil, ErrNoNatsConn
 	}

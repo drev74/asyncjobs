@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/nats-io/nats.go"
+	"go.uber.org/zap"
 )
 
 const (
@@ -52,7 +53,7 @@ func RequestReplySubjectForTaskType(taskType string) string {
 	return fmt.Sprintf(RequestReplyTaskHandlerPattern, taskType)
 }
 
-func (r *requestReplyHandler) processTask(ctx context.Context, logger Logger, task *Task) (any, error) {
+func (r *requestReplyHandler) processTask(ctx context.Context, logger *zap.SugaredLogger, task *Task) (any, error) {
 	if r.nc == nil {
 		return nil, fmt.Errorf("no connnection set")
 	}

@@ -15,6 +15,7 @@ import (
 	"github.com/nats-io/nats.go"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
+	"go.uber.org/zap"
 )
 
 var _ = Describe("RequestReplyHandler", func() {
@@ -22,6 +23,9 @@ var _ = Describe("RequestReplyHandler", func() {
 		ctx    context.Context
 		cancel context.CancelFunc
 	)
+
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
 
 	BeforeEach(func() {
 		ctx, cancel = context.WithTimeout(context.Background(), 5*time.Second)
@@ -49,7 +53,7 @@ var _ = Describe("RequestReplyHandler", func() {
 
 			rrh := newRequestReplyHandleFunc(nc, "")
 			Expect(err).ToNot(HaveOccurred())
-			payload, err := rrh(ctx, &defaultLogger{}, task)
+			payload, err := rrh(ctx, zl, task)
 			Expect(err).To(MatchError(fmt.Errorf("test error")))
 			Expect(payload).To(Equal([]byte("error")))
 		})
@@ -74,7 +78,7 @@ var _ = Describe("RequestReplyHandler", func() {
 
 			rrh := newRequestReplyHandleFunc(nc, "email:new")
 			Expect(err).ToNot(HaveOccurred())
-			payload, err := rrh(ctx, &defaultLogger{}, task)
+			payload, err := rrh(ctx, zl, task)
 			Expect(err).To(MatchError(fmt.Errorf("test error")))
 			Expect(payload).To(Equal([]byte("error")))
 		})
@@ -99,7 +103,7 @@ var _ = Describe("RequestReplyHandler", func() {
 
 			rrh := newRequestReplyHandleFunc(nc, "email:new")
 			Expect(err).ToNot(HaveOccurred())
-			payload, err := rrh(ctx, &defaultLogger{}, task)
+			payload, err := rrh(ctx, zl, task)
 			Expect(err).To(MatchError(ErrTerminateTask))
 			Expect(payload).To(Equal([]byte("error")))
 		})
@@ -153,15 +157,15 @@ var _ = Describe("RequestReplyHandler", func() {
 			rrh := newRequestReplyHandleFunc(nc, "email:new")
 			Expect(err).ToNot(HaveOccurred())
 
-			_, err = rrh(context.Background(), &defaultLogger{}, task)
+			_, err = rrh(context.Background(), zl, task)
 			Expect(err).To(MatchError(ErrRequestReplyNoDeadline))
 
 			short, cancel := context.WithTimeout(ctx, time.Second)
-			_, err = rrh(short, &defaultLogger{}, task)
+			_, err = rrh(short, zl, task)
 			cancel()
 			Expect(err).To(MatchError(ErrRequestReplyShortDeadline))
 
-			payload, err := rrh(ctx, &defaultLogger{}, task)
+			payload, err := rrh(ctx, zl, task)
 			Expect(err).ToNot(HaveOccurred())
 			Expect(payload).To(Equal([]byte("ok")))
 		})

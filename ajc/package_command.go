@@ -30,8 +30,6 @@ func configurePackagesCommand(app *fisk.Application) {
 }
 
 func (c *packageCommand) dockerAction(_ *fisk.ParseContext) error {
-	createLogger()
-
 	_, err := os.Stat(c.file)
 	if os.IsNotExist(err) {
 		return fmt.Errorf("handlers.yaml does not exist")

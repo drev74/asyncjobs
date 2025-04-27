@@ -11,8 +11,10 @@ import (
 
 	"github.com/choria-io/asyncjobs"
 	"github.com/choria-io/fisk"
+	"github.com/mattn/go-colorable"
 	"github.com/nats-io/jsm.go/natscontext"
-	"github.com/sirupsen/logrus"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
@@ -21,7 +23,7 @@ var (
 
 	nctx   string
 	debug  bool
-	log    *logrus.Entry
+	log    *zap.SugaredLogger
 	client *asyncjobs.Client
 	admin  asyncjobs.StorageAdmin
 	ajc    *fisk.Application
@@ -64,4 +66,17 @@ func main() {
 
 		os.Exit(1)
 	}
+}
+
+func newLogger() (*zap.SugaredLogger, error) {
+	lg := zap.NewDevelopmentEncoderConfig()
+	lg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewConsoleEncoder(lg),
+		zapcore.AddSync(colorable.NewColorableStdout()),
+		zapcore.DebugLevel,
+	))
+
+	return logger.Sugar(), nil
 }

@@ -17,33 +17,15 @@ import (
 	"github.com/dustin/go-humanize"
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats.go"
-	"github.com/sirupsen/logrus"
 	"github.com/xlab/tablewriter"
+	"go.uber.org/zap"
 	"golang.org/x/term"
 )
-
-func createLogger() {
-	logger := logrus.New()
-	if debug {
-		logger.SetLevel(logrus.DebugLevel)
-		logger.Debugf("Logging at debug level")
-	} else {
-		logger.SetLevel(logrus.InfoLevel)
-	}
-	logger.SetFormatter(&logrus.TextFormatter{
-		FullTimestamp:   true,
-		TimestampFormat: "15:04:05",
-	})
-
-	log = logrus.NewEntry(logger)
-}
 
 func prepare(copts ...asyncjobs.ClientOpt) error {
 	if client != nil {
 		return nil
 	}
-
-	createLogger()
 
 	if nctx == "" {
 		return fmt.Errorf("no NATS Context specified")
@@ -57,12 +39,14 @@ func prepare(copts ...asyncjobs.ClientOpt) error {
 	}
 
 	opts := []asyncjobs.ClientOpt{
-		asyncjobs.CustomLogger(log),
 		asyncjobs.NatsContext(nctx, conn...),
 	}
 	opts = append(opts, copts...)
 
-	client, err = asyncjobs.NewClient(opts...)
+	logger, _ := zap.NewDevelopment()
+	zl := logger.Sugar()
+
+	client, err = asyncjobs.NewClient(zl, opts...)
 	if err != nil {
 		return err
 	}
