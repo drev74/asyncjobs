@@ -18,7 +18,6 @@ import (
 	"github.com/nats-io/jsm.go/api"
 	"github.com/nats-io/nats.go"
 	"github.com/xlab/tablewriter"
-	"go.uber.org/zap"
 	"golang.org/x/term"
 )
 
@@ -43,8 +42,10 @@ func prepare(copts ...asyncjobs.ClientOpt) error {
 	}
 	opts = append(opts, copts...)
 
-	logger, _ := zap.NewDevelopment()
-	zl := logger.Sugar()
+	zl, err := newLogger()
+	if err != nil {
+		return err
+	}
 
 	client, err = asyncjobs.NewClient(zl, opts...)
 	if err != nil {

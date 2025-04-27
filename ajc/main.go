@@ -75,7 +75,7 @@ func newLogger() (*zap.SugaredLogger, error) {
 	logger := zap.New(zapcore.NewCore(
 		zapcore.NewConsoleEncoder(lg),
 		zapcore.AddSync(colorable.NewColorableStdout()),
-		zapcore.DebugLevel,
+		zapcore.WarnLevel,
 	))
 
 	return logger.Sugar(), nil
